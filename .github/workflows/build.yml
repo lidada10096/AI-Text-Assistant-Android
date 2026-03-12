@@ -24,11 +24,10 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       
-    - name: Install Gradle
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gradle
-        gradle --version
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: 8.5
         
     - name: Create local.properties
       run: |
@@ -36,16 +35,27 @@ jobs:
         echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
         cat local.properties
         
-    - name: Build Debug APK with system Gradle
+    - name: Make gradlew executable
       run: |
         cd android-app
-        gradle assembleDebug --stacktrace --info
+        # Create gradlew script
+        cat > gradlew << 'EOF'
+        #!/bin/sh
+        exec gradle "$@"
+        EOF
+        chmod +x gradlew
+        ls -la gradlew
+        
+    - name: Build Debug APK
+      run: |
+        cd android-app
+        gradle assembleDebug --stacktrace
       continue-on-error: true
       
-    - name: Build Release APK with system Gradle
+    - name: Build Release APK
       run: |
         cd android-app
-        gradle assembleRelease --stacktrace --info
+        gradle assembleRelease --stacktrace
       continue-on-error: true
       
     - name: Check build outputs
