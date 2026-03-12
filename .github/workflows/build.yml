@@ -35,27 +35,16 @@ jobs:
         echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
         cat local.properties
         
-    - name: Make gradlew executable
-      run: |
-        cd android-app
-        # Create gradlew script
-        cat > gradlew << 'EOF'
-        #!/bin/sh
-        exec gradle "$@"
-        EOF
-        chmod +x gradlew
-        ls -la gradlew
-        
     - name: Build Debug APK
       run: |
         cd android-app
-        gradle assembleDebug --stacktrace
+        gradle :app:assembleDebug --stacktrace
       continue-on-error: true
       
     - name: Build Release APK
       run: |
         cd android-app
-        gradle assembleRelease --stacktrace
+        gradle :app:assembleRelease --stacktrace
       continue-on-error: true
       
     - name: Check build outputs
