@@ -23,70 +23,43 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       
-    - name: Create gradlew wrapper
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 8.5
+        
+    - name: Make gradlew executable
       run: |
         cd android-app
-        # Create gradle wrapper files
-        mkdir -p gradle/wrapper
-        echo 'distributionBase=GRADLE_USER_HOME
-        distributionPath=wrapper/dists
-        distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
-        networkTimeout=10000
-        validateDistributionUrl=true
-        zipStoreBase=GRADLE_USER_HOME
-        zipStorePath=wrapper/dists' > gradle/wrapper/gradle-wrapper.properties
-        
-        # Download gradle wrapper
-        curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.5.0/subprojects/wrapper/src/main/resources/gradle-wrapper.jar
-        
-        # Create gradlew script
-        echo '#!/bin/sh
-        exec "$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar" "$@"' > gradlew
         chmod +x gradlew
+        ls -la gradlew
         
-        # Alternative: use system gradle
-        which gradle || (sudo apt-get update && sudo apt-get install -y gradle)
-      
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-      
+    - name: Create local.properties
+      run: |
+        cd android-app
+        echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
+        
     - name: Build Debug APK
       run: |
         cd android-app
-        if [ -f ./gradlew ]; then
-          ./gradlew assembleDebug --stacktrace
-        else
-          gradle assembleDebug --stacktrace
-        fi
+        ./gradlew assembleDebug --stacktrace || gradle assembleDebug --stacktrace
       continue-on-error: true
       
     - name: Build Release APK
       run: |
         cd android-app
-        if [ -f ./gradlew ]; then
-          ./gradlew assembleRelease --stacktrace
-        else
-          gradle assembleRelease --stacktrace
-        fi
+        ./gradlew assembleRelease --stacktrace || gradle assembleRelease --stacktrace
       continue-on-error: true
       
     - name: Check build outputs
       run: |
         echo "Checking build outputs..."
-        ls -la android-app/app/build/outputs/apk/debug/ 2>/dev/null || echo "Debug APK not found"
-        ls -la android-app/app/build/outputs/apk/release/ 2>/dev/null || echo "Release APK not found"
+        find android-app -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
+        ls -la android-app/app/build/outputs/apk/ 2>/dev/null || echo "APK output directory not found"
       
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
