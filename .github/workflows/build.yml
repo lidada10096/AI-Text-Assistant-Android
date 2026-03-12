@@ -28,6 +28,7 @@ jobs:
       uses: gradle/actions/setup-gradle@v3
       with:
         gradle-version: 8.5
+        cache-disabled: true
         
     - name: Create local.properties
       run: |
@@ -35,26 +36,35 @@ jobs:
         echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
         cat local.properties
         
+    - name: Check project structure
+      run: |
+        echo "=== Project structure ==="
+        ls -la android-app/
+        echo "=== App build.gradle ==="
+        cat android-app/app/build.gradle.kts
+        
     - name: Build Debug APK
       run: |
         cd android-app
-        gradle :app:assembleDebug --stacktrace
+        gradle :app:assembleDebug --stacktrace --info 2>&1 | head -200
       continue-on-error: true
       
     - name: Build Release APK
       run: |
         cd android-app
-        gradle :app:assembleRelease --stacktrace
+        gradle :app:assembleRelease --stacktrace --info 2>&1 | head -200
       continue-on-error: true
       
     - name: Check build outputs
       run: |
         echo "=== Checking build outputs ==="
         find . -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
-        echo "=== APK directory structure ==="
-        ls -la android-app/app/build/outputs/apk/ 2>/dev/null || echo "APK output directory not found"
         echo "=== Build directory ==="
         ls -la android-app/app/build/ 2>/dev/null || echo "Build directory not found"
+        echo "=== Outputs directory ==="
+        ls -la android-app/app/build/outputs/ 2>/dev/null || echo "Outputs directory not found"
+        echo "=== APK directory ==="
+        ls -la android-app/app/build/outputs/apk/ 2>/dev/null || echo "APK directory not found"
       
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
